@@ -1,0 +1,22 @@
+### Temp Folder ###
+target
+logs
+
+### Temp Files ###
+*.class
+*.jar
+*.war
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
