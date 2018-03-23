@@ -1,12 +1,11 @@
 pipeline {
     agent any
     stages {
-        stage('Helloworld') {
+        stage('构建') {
             steps {
-                sh 'echo "Hello World"'
                 sh '''
-                    echo "Multiline shell steps works too"
-                    ls -lah
+                    cd codes
+                    mvn clean package -Dmaven.test.skip=true
                 '''
             }
         }
