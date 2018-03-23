@@ -9,5 +9,13 @@ pipeline {
                 '''
             }
         }
+        stage('交付') {
+            steps {
+                sh '''
+                    mkdir -p /home/zp/app/
+                    cp codes/target/spring-boot-sample-helloworld.jar /home/zp/app/
+                '''
+            }
+        }
     }
 }
