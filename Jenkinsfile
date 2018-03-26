@@ -1,12 +1,27 @@
 pipeline {
     agent any
     stages {
-        stage('Helloworld') {
+        stage('安装库') {
             steps {
-                sh 'echo "Hello World"'
                 sh '''
-                    echo "Multiline shell steps works too"
-                    ls -lah
+                    cd codes
+                    npm install
+                '''
+            }
+        }
+        stage('构建') {
+            steps {
+                sh '''
+                    cd codes
+                    npm run build
+                '''
+            }
+        }
+        stage('交付') {
+            steps {
+                sh '''
+                    mkdir -p /home/zp/app/
+                    cp -rf codes/build /home/zp/app/react-demo
                 '''
             }
         }
