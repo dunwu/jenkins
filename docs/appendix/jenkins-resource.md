@@ -1,8 +1,11 @@
 # Jenkins 资源
 
+## 官方资源
+
 * [Jenkins Github](https://github.com/kohsuke/jenkins)
 * [Jenkins 官网](https://jenkins.io/)
-* [Jenkins 教程](https://www.w3cschool.cn/jenkins/)
+* [Pipeline Syntax](https://jenkins.io/doc/book/pipeline/syntax/)
+* [Pipeline Steps Reference](https://jenkins.io/doc/pipeline/steps/)
 
 ## 文章
 

@@ -13,6 +13,13 @@
             - [Timeouts, retries and more](#timeouts-retries-and-more)
             - [整理](#%E6%95%B4%E7%90%86)
     - [定义执行环境](#%E5%AE%9A%E4%B9%89%E6%89%A7%E8%A1%8C%E7%8E%AF%E5%A2%83)
+    - [环境变量](#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F)
+    - [记录测试和 artifact](#%E8%AE%B0%E5%BD%95%E6%B5%8B%E8%AF%95%E5%92%8C-artifact)
+    - [清空和通知](#%E6%B8%85%E7%A9%BA%E5%92%8C%E9%80%9A%E7%9F%A5)
+        - [邮件](#%E9%82%AE%E4%BB%B6)
+    - [部署](#%E9%83%A8%E7%BD%B2)
+        - [阶段作为部署环境](#%E9%98%B6%E6%AE%B5%E4%BD%9C%E4%B8%BA%E9%83%A8%E7%BD%B2%E7%8E%AF%E5%A2%83)
+    - [要求人工输入](#%E8%A6%81%E6%B1%82%E4%BA%BA%E5%B7%A5%E8%BE%93%E5%85%A5)
 
 <!-- /TOC -->
 
@@ -288,4 +295,220 @@ v7.4.0
 [Pipeline] }
 [Pipeline] // stage
 [Pipeline] }
+```
+
+## 环境变量
+
+环境变量可以全局设置，如下面的示例或每个阶段。正如您所预料的那样，为每个阶段设置环境变量意味着它们仅适用于定义它们的阶段。
+
+```
+pipeline {
+    agent any
+
+    environment {
+        DISABLE_AUTH = 'true'
+        DB_ENGINE    = 'sqlite'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh 'printenv'
+            }
+        }
+    }
+}
+```
+
+这种在 Jenkins 文件中定义环境变量的方法对于指示脚本（如 `Makefile`）在构建或测试等不同的场景运行非常有用。
+
+环境变量的另一个常见用途是在构建或测试脚本中设置或覆盖“虚拟”证书。由于将证书直接放入Jenkins文件中显然不是一个好主意，因此Jenkins Pipeline允许用户快速安全地访问Jenkins文件中的预定义凭据，而无需了解其值。
+
+## 记录测试和 artifact
+
+虽然测试是一个良好的持续交付管道的关键部分，但大多数人不希望筛选数千行控制台输出来查找有关失败测试的信息。为了简化操作，只要您的测试运行器可以输出测试结果文件，Jenkins就可以记录和汇总测试结果。 Jenkins通常与junit步骤捆绑在一起，但是如果您的测试运行器无法输出JUnit样式的XML报告，那么还有其他插件可以处理任何广泛使用的测试报告格式。
+
+为了收集我们的测试结果和文物，我们将使用 `post` 部分。
+
+```
+pipeline {
+    agent any
+    stages {
+        stage('Test') {
+            steps {
+                sh './gradlew check'
+            }
+        }
+    }
+    post {
+        always {
+            junit 'build/reports/**/*.xml'
+        }
+    }
+}
+```
+
+这将始终抓取测试结果，让 Jenkins 跟踪他们，计算趋势并报告他们。未通过测试的 Pipeline 将被标记为“UNSTABLE”，在Web UI中用黄色标记。这与“失败”状态不同，用红色标记。
+
+当出现测试失败时，从 Jenkins 抓取构建的 artifcat 以进行本地分析和调查通常很有用。Jenkins 内置的支持存储了artifcat，这是 Pipeline 执行期间生成的文件。
+
+这很容易通过 `archiveArtifacts` 步骤和文件匹配表达式完成，如下例所示：
+
+```
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh './gradlew build'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh './gradlew check'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'build/libs/**/*.jar', fingerprint: true
+            junit 'build/reports/**/*.xml'
+        }
+    }
+}
+```
+
+如果在 `archiveArtifacts` 步骤中指定了多个参数，则必须在步骤代码中明确指定每个参数的名称 - 即为 `artifact` 的路径和文件名以及指纹选择此选项的工件。如果您只需指定工件的路径和文件名，则可以省略参数名称`artifact` - 例如
+`archiveArtifacts'build / libs / ** / *。jar'`
+
+在 Jenkins 中记录测试和 artifact 有利于快速轻松地向团队中的各个成员提供信息。
+
+## 清空和通知
+
+由于Pipeline的post部分保证在Pipeline执行结束时运行，因此我们可以添加一些通知或其他步骤来执行最终化，通知或其他Pipeline结束任务。
+
+```
+pipeline {
+    agent any
+    stages {
+        stage('No-op') {
+            steps {
+                sh 'ls'
+            }
+        }
+    }
+    post {
+        always {
+            echo 'One way or another, I have finished'
+            deleteDir() /* clean up our workspace */
+        }
+        success {
+            echo 'I succeeeded!'
+        }
+        unstable {
+            echo 'I am unstable :/'
+        }
+        failure {
+            echo 'I failed :('
+        }
+        changed {
+            echo 'Things were different before...'
+        }
+    }
+}
+```
+
+有很多方法可以发送通知，下面是一些片段，演示如何将有关管道的通知发送到电子邮件，Hipchat聊天室或Slack频道。
+
+### 邮件
+
+```
+post {
+    failure {
+        mail to: 'team@example.com',
+             subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+             body: "Something is wrong with ${env.BUILD_URL}"
+    }
+}
+```
+
+## 部署
+
+
+最基本的连续交付管道至少有三个阶段，这些阶段应该在Jenkins文件中定义：构建，测试和部署。在本节中，我们主要关注部署阶段，但应该指出，稳定的构建和测试阶段是任何部署活动的重要先导。
+
+```
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying'
+            }
+        }
+    }
+}
+```
+
+### 阶段作为部署环境
+
+一种常见模式是扩展阶段的数量以捕获其他部署环境，如“分段”或“生产”，如以下代码片段所示。
+
+```
+stage('Deploy - Staging') {
+    steps {
+        sh './deploy staging'
+        sh './run-smoke-tests'
+    }
+}
+stage('Deploy - Production') {
+    steps {
+        sh './deploy production'
+    }
+}
+```
+
+在这个例子中，我们假设我们的 `./run-smoke-tests` 脚本运行的任何“smoke tests”足以限定或验证生产环境的发布。这种自动将代码全部部署到生产的流水线可被视为“持续部署”的实现。尽管这是一种崇高的理想，但对于许多人来说，持续部署可能不实际的原因很多，但仍然可以享受持续交付的好处。Jenkins 管道很容易支持两者。
+
+## 要求人工输入
+
+通常在阶段之间，特别是环境阶段之间传递时，您可能需要在继续之前手动输入信息。例如，判断应用程序是否处于足够好的状态以“促进”到生产环境。这可以通过输入步骤来完成。在下面的例子中，“Sanity check”阶段实际上阻止了输入，并且在没有人确认进度的情况下不会进行。
+
+```
+pipeline {
+    agent any
+    stages {
+        /* "Build" and "Test" stages omitted */
+
+        stage('Deploy - Staging') {
+            steps {
+                sh './deploy staging'
+                sh './run-smoke-tests'
+            }
+        }
+
+        stage('Sanity check') {
+            steps {
+                input "Does the staging environment look ok?"
+            }
+        }
+
+        stage('Deploy - Production') {
+            steps {
+                sh './deploy production'
+            }
+        }
+    }
+}
 ```

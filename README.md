@@ -1,9 +1,12 @@
 # Jenkins
 
+> 本项目是一个 Jenkins 中文教程。旨在帮助你快速上手 jenkins，学习包括安装、配置、使用等知识点。
+>
+> Jenkins 是一个开源软件项目，是基于 Java 开发的一种持续集成、持续部署工具。
+
 ## 知识大纲
 
-* [Jenkins 介绍](docs/jenkins-quickstart.md)
-* 快速指南(quickstart)
+* [Jenkins 快速指南](docs/jenkins-quickstart.md)
 * 基础篇（basics）
   * 环境（environment）
   * [Jenkins 安装](docs/basics/jenkins-installation.md)
