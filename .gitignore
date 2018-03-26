@@ -1,22 +1,39 @@
-### Temp Folder ###
+################ JAVA ################
+# temp folders
+classes
 target
 logs
 
-### Temp Files ###
+# temp files
 *.class
 *.jar
 *.war
+*.versionsBackup
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
 
-### IntelliJ IDEA ###
+################ JAVASCRIPT ################
+# dependencies
+node_modules
+
+# temp folders
+build
+dist
+_book
+_jsdoc
+
+# temp files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bundle*.js
+
+
+################ IDEA ################
 .idea
-*.iws
 *.iml
-*.ipr
+
+
+################ Eclipse ################
+.classpath
+.project
