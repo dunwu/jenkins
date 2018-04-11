@@ -20,3 +20,8 @@
   * [Jenkins 资源](docs/appendix/jenkins-resource.md)
   * [Jenkins 术语](docs/appendix/jenkins-glossary.md)
   * 技巧（recipe）
+
+## 示例
+
+* `java` branch 是一个 jenkins 构建 Java 项目的示例。
+* `js` branch 是一个 jenkins 构建 Js 项目的示例。
